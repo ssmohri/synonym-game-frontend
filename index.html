@@ -554,6 +554,10 @@
       renderCurrentPlayer();
       renderScoreboard();
       renderChart(true);
+      document.getElementById("bgMusic").play();
+      const music = document.getElementById("bgMusic");
+      music.volume = 0.2; // soft background
+      music.play();
     }
 
     function updateHeader() {
@@ -819,5 +823,9 @@
 
     buildPlayerInputs();
   </script>
+  <audio id="bgMusic" loop>
+  <source src="music.mp3" type="audio/mpeg">
+</audio>
 </body>
 </html>
+<button onclick="toggleMusic()">🔊 Music</button>

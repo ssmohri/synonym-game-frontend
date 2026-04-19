@@ -292,6 +292,10 @@
           <label for="roundCount">Number of rounds</label>
           <input id="roundCount" type="number" min="1" max="50" value="5" />
         </div>
+        <div>
+          <label for="gamePassword">Game password</label>
+          <input id="gamePassword" type="password" placeholder="Enter game password" />
+        </div>
       </div>
       <div style="margin-top:14px; display:flex; gap:12px; flex-wrap:wrap;">
         <button id="buildPlayersBtn" class="btn-primary">Create Player Boxes</button>
@@ -421,7 +425,8 @@
       currentLevel: null,
       chart: null,
       chartLabels: [],
-      usedWords: new Set()
+      usedWords: new Set(),
+      gamePassword: ""
     };
 
     const el = {
@@ -525,14 +530,21 @@
     function startGame() {
       state.players = collectPlayers();
       state.rounds = Math.max(1, parseInt(el.roundCount.value || '5', 10));
+      state.gamePassword = document.getElementById("gamePassword").value.trim();
+    
+      if (!state.gamePassword) {
+        alert("Please enter the game password.");
+        return;
+      }
+    
       state.currentRound = 1;
       state.currentTurn = 1;
       state.totalTurns = state.players.length * state.rounds;
       state.usedWords.clear();
-
+    
       const randomStart = Math.floor(Math.random() * state.players.length);
       state.currentPlayerIndex = randomStart;
-
+    
       el.setupScreen.classList.add('hidden');
       el.resultScreen.classList.add('hidden');
       el.gameScreen.classList.remove('hidden');
@@ -753,29 +765,35 @@
       el.resultScreen.classList.add('hidden');
     }
       async function generateQuestion(level) {
-        const password = prompt("Enter game password:");
-      
-        const res = await fetch("https://synonym-game-backend.onrender.com/generate", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({ level, password })
-        });
-      
-        if (!res.ok) {
-          alert("Wrong password or server error");
-          return fallbackGenerate(level);
-        }
-      
-        return await res.json();
+      const res = await fetch("https://synonym-game-backend.onrender.com/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          level,
+          password: state.gamePassword,
+          usedWords: Array.from(state.usedWords)
+        })
+      });
+    
+      if (!res.ok) {
+        alert("Wrong password or server error");
+        throw new Error("Request failed");
       }
-
+    
+      const data = await res.json();
+      if (data.word) {
+        state.usedWords.add(data.word.toLowerCase());
+      }
+      return data;
+    }
     function fallbackGenerate(level) {
       const bank = fallbackBank[level];
       let available = bank.filter(item => !state.usedWords.has(item.word));
       if (available.length === 0) {
         state.usedWords.clear();
+        state.gamePassword = "";
         available = [...bank];
       }
       const chosen = available[Math.floor(Math.random() * available.length)];

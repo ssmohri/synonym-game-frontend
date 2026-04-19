@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Synonym Game</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg: #fff7fb;
+      --panel: #ffffff;
+      --primary: #d946ef;
+      --primary-dark: #a21caf;
+      --secondary: #f9a8d4;
+      --text: #2d1b35;
+      --muted: #7a667f;
+      --border: #f3d1e8;
+      --success: #16a34a;
+      --danger: #dc2626;
+      --shadow: 0 10px 30px rgba(217, 70, 239, 0.12);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: linear-gradient(180deg, #fff7fb 0%, #fff0f7 100%);
+      color: var(--text);
+    }
+
+    .app {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .hidden { display: none !important; }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 22px;
+      margin-bottom: 20px;
+    }
+
+    h1, h2, h3 { margin-top: 0; }
+    h1 {
+      font-size: 2rem;
+      text-align: center;
+      color: var(--primary-dark);
+    }
+
+    .subtitle {
+      text-align: center;
+      color: var(--muted);
+      margin-bottom: 22px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .grid-2 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+    .grid-3 { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+
+    label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    input, select, button, textarea {
+      font: inherit;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid #e9c7dd;
+      border-radius: 12px;
+      background: #fff;
+      color: var(--text);
+    }
+
+    button {
+      border: none;
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 0.15s ease, opacity 0.15s ease;
+    }
+
+    button:hover { transform: translateY(-1px); }
+    button:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-secondary { background: #f5d0fe; color: #701a75; }
+    .btn-ghost { background: #fdf2f8; color: var(--primary-dark); border: 1px solid var(--border); }
+    .btn-danger { background: #fee2e2; color: #991b1b; }
+
+    .player-box {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px;
+      background: #fffafd;
+    }
+
+    .avatar-list {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .avatar-option {
+      border: 2px solid transparent;
+      border-radius: 14px;
+      padding: 8px;
+      background: #fff;
+      text-align: center;
+      cursor: pointer;
+    }
+
+    .avatar-option.selected {
+      border-color: var(--primary);
+      background: #fdf4ff;
+    }
+
+    .avatar-emoji {
+      font-size: 2rem;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .pill {
+      display: inline-block;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: #fdf2f8;
+      border: 1px solid var(--border);
+      color: var(--primary-dark);
+      font-weight: bold;
+    }
+
+    .player-turn {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px;
+      background: #fffafd;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      margin-bottom: 16px;
+    }
+
+    .big-avatar { font-size: 2.4rem; }
+    .word-box {
+      text-align: center;
+      padding: 24px;
+      border-radius: 18px;
+      background: linear-gradient(180deg, #fff 0%, #fdf4ff 100%);
+      border: 1px solid var(--border);
+      margin-bottom: 16px;
+    }
+
+    .word {
+      font-size: 2rem;
+      font-weight: bold;
+      color: var(--primary-dark);
+      margin: 10px 0;
+    }
+
+    .options {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .option-btn {
+      background: white;
+      border: 1px solid var(--border);
+      color: var(--text);
+      text-align: left;
+      min-height: 58px;
+    }
+
+    .option-btn.correct {
+      background: #dcfce7;
+      border-color: #86efac;
+      color: #166534;
+    }
+
+    .option-btn.wrong {
+      background: #fee2e2;
+      border-color: #fca5a5;
+      color: #991b1b;
+    }
+
+    .assist-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .info-box {
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      color: #9a3412;
+      border-radius: 14px;
+      padding: 12px;
+      margin-top: 10px;
+    }
+
+    .message {
+      padding: 14px;
+      border-radius: 14px;
+      font-weight: bold;
+      margin-top: 12px;
+    }
+
+    .success { background: #dcfce7; color: #166534; }
+    .error { background: #fee2e2; color: #991b1b; }
+    .neutral { background: #f3e8ff; color: #6b21a8; }
+
+    .scoreboard {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .score-card {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 12px;
+      background: #fffafd;
+    }
+
+    .rank-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .rank-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      background: #fffafd;
+      font-size: 1.05rem;
+      font-weight: bold;
+    }
+
+    .footer-note {
+      color: var(--muted);
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <h1>AI Synonym Game</h1>
+    <div class="subtitle">Players, rounds, levels, hints, example sentences, ranking, and live score chart.</div>
+
+    <section id="setupScreen" class="card">
+      <h2>Game Setup</h2>
+      <div class="grid grid-2">
+        <div>
+          <label for="playerCount">Number of players</label>
+          <input id="playerCount" type="number" min="1" max="8" value="2" />
+        </div>
+        <div>
+          <label for="roundCount">Number of rounds</label>
+          <input id="roundCount" type="number" min="1" max="50" value="5" />
+        </div>
+      </div>
+      <div style="margin-top:14px; display:flex; gap:12px; flex-wrap:wrap;">
+        <button id="buildPlayersBtn" class="btn-primary">Create Player Boxes</button>
+      </div>
+      <div id="playersContainer" class="grid grid-2" style="margin-top:18px;"></div>
+      <div id="startWrap" class="hidden" style="margin-top:18px; display:flex; gap:12px; flex-wrap:wrap;">
+        <button id="startGameBtn" class="btn-primary">Enter Game</button>
+      </div>
+    </section>
+
+    <section id="gameScreen" class="hidden">
+      <div class="card">
+        <div class="topbar">
+          <div class="pill" id="roundInfo">Round 1</div>
+          <div class="pill" id="turnInfo">Turn</div>
+          <div class="pill" id="remainingInfo">Remaining</div>
+        </div>
+
+        <div class="player-turn" id="currentPlayerBox"></div>
+
+        <div id="levelSelection" class="card" style="margin-bottom:16px;">
+          <h3>Choose difficulty</h3>
+          <div class="grid grid-3">
+            <button class="btn-secondary level-btn" data-level="easy">Easy · 5 points</button>
+            <button class="btn-secondary level-btn" data-level="medium">Medium · 10 points</button>
+            <button class="btn-secondary level-btn" data-level="hard">Hard · 15 points</button>
+          </div>
+        </div>
+
+        <div id="questionArea" class="hidden">
+          <div class="word-box">
+            <div style="color:var(--muted); font-weight:bold;">Find the synonym</div>
+            <div class="word" id="questionWord">Word</div>
+            <div class="pill" id="levelBadge">Level</div>
+          </div>
+
+          <div class="assist-row">
+            <button id="sentenceBtn" class="btn-ghost">Show example sentence</button>
+            <button id="hintBtn" class="btn-ghost">Show hint</button>
+          </div>
+          <div id="sentenceBox" class="info-box hidden"></div>
+          <div id="hintBox" class="info-box hidden"></div>
+
+          <div class="options" id="optionsContainer"></div>
+          <div id="feedbackBox" class="message neutral hidden"></div>
+          <div style="margin-top:12px; display:flex; gap:12px; flex-wrap:wrap;">
+            <button id="nextTurnBtn" class="btn-primary hidden">Next turn</button>
+            <button id="restartBtn" class="btn-danger">Reset game</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Live scores</h3>
+        <div class="scoreboard" id="scoreboard"></div>
+      </div>
+
+      <div class="card">
+        <h3>Accumulated points chart</h3>
+        <canvas id="scoreChart" height="110"></canvas>
+      </div>
+    </section>
+
+    <section id="resultScreen" class="card hidden">
+      <h2>Final Ranking</h2>
+      <div id="rankingList" class="rank-list"></div>
+      <div style="margin-top:16px; display:flex; gap:12px; flex-wrap:wrap;">
+        <button id="playAgainBtn" class="btn-primary">Play again</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h3>AI connection</h3>
+      <p class="footer-note">
+        This file is designed so the questions can be generated by AI. For security, do not place a real API key directly in a public HTML file. The current version includes a built-in fallback question generator, plus a placeholder function where you can connect your OpenAI API or your own backend.
+      </p>
+    </section>
+  </div>
+
+  <script>
+    const avatarChoices = [
+      { id: 'pony1', emoji: '🦄', label: 'Sparkle Pony' },
+      { id: 'pony2', emoji: '🐴', label: 'Sunny Pony' },
+      { id: 'pony3', emoji: '🌈', label: 'Rainbow Pony' },
+      { id: 'pony4', emoji: '💖', label: 'Pink Pony' },
+      { id: 'pony5', emoji: '✨', label: 'Magic Pony' },
+      { id: 'pony6', emoji: '🎀', label: 'Ribbon Pony' },
+      { id: 'pony7', emoji: '🌸', label: 'Flower Pony' },
+      { id: 'pony8', emoji: '⭐', label: 'Star Pony' }
+    ];
+
+    const levelPoints = { easy: 5, medium: 10, hard: 15 };
+    const assistPenalty = { easy: 1, medium: 2, hard: 3 };
+
+    const fallbackBank = {
+      easy: [
+        { word: 'happy', correct: 'joyful', wrong: ['angry', 'tiny', 'empty'], hint: 'It means feeling full of joy.', sentence: 'She felt happy after hearing the good news.' },
+        { word: 'big', correct: 'large', wrong: ['thin', 'late', 'soft'], hint: 'It means not small.', sentence: 'They live in a big house near the park.' },
+        { word: 'quick', correct: 'fast', wrong: ['silent', 'rough', 'weak'], hint: 'It means moving with speed.', sentence: 'He is quick at solving easy puzzles.' },
+        { word: 'smart', correct: 'clever', wrong: ['sleepy', 'noisy', 'plain'], hint: 'It means intelligent.', sentence: 'The smart student answered immediately.' },
+        { word: 'begin', correct: 'start', wrong: ['finish', 'forget', 'break'], hint: 'It means to commence.', sentence: 'Let us begin the game now.' }
+      ],
+      medium: [
+        { word: 'ancient', correct: 'old', wrong: ['modern', 'narrow', 'silent'], hint: 'It relates to a very distant past.', sentence: 'The museum displayed an ancient statue.' },
+        { word: 'brave', correct: 'courageous', wrong: ['careless', 'gentle', 'awkward'], hint: 'It describes someone who faces danger well.', sentence: 'The brave firefighter entered the building.' },
+        { word: 'reduce', correct: 'decrease', wrong: ['expand', 'admire', 'arrive'], hint: 'It means to make smaller or less.', sentence: 'We need to reduce unnecessary costs.' },
+        { word: 'assist', correct: 'help', wrong: ['oppose', 'delay', 'wander'], hint: 'It means to support someone.', sentence: 'Can you assist me with this task?' },
+        { word: 'fragile', correct: 'delicate', wrong: ['sturdy', 'ancient', 'public'], hint: 'It can break easily.', sentence: 'Please handle the fragile glass carefully.' }
+      ],
+      hard: [
+        { word: 'meticulous', correct: 'thorough', wrong: ['careless', 'distant', 'casual'], hint: 'It describes careful attention to detail.', sentence: 'She was meticulous in checking every line of the report.' },
+        { word: 'ambiguous', correct: 'unclear', wrong: ['obvious', 'massive', 'honest'], hint: 'It has more than one possible meaning.', sentence: 'The instruction was ambiguous and confused the team.' },
+        { word: 'resilient', correct: 'adaptable', wrong: ['fragile', 'motionless', 'formal'], hint: 'It refers to recovering well from difficulties.', sentence: 'A resilient team can cope with sudden disruptions.' },
+        { word: 'abundant', correct: 'plentiful', wrong: ['scarce', 'rigid', 'timid'], hint: 'It means available in large quantities.', sentence: 'Fresh fruit was abundant during the summer season.' },
+        { word: 'elated', correct: 'delighted', wrong: ['annoyed', 'ordinary', 'anxious'], hint: 'It means extremely happy.', sentence: 'He felt elated after receiving the award.' }
+      ]
+    };
+
+    const state = {
+      players: [],
+      rounds: 5,
+      currentRound: 1,
+      currentPlayerIndex: 0,
+      totalTurns: 0,
+      currentTurn: 1,
+      currentQuestion: null,
+      currentLevel: null,
+      chart: null,
+      chartLabels: [],
+      usedWords: new Set()
+    };
+
+    const el = {
+      setupScreen: document.getElementById('setupScreen'),
+      gameScreen: document.getElementById('gameScreen'),
+      resultScreen: document.getElementById('resultScreen'),
+      playerCount: document.getElementById('playerCount'),
+      roundCount: document.getElementById('roundCount'),
+      buildPlayersBtn: document.getElementById('buildPlayersBtn'),
+      playersContainer: document.getElementById('playersContainer'),
+      startWrap: document.getElementById('startWrap'),
+      startGameBtn: document.getElementById('startGameBtn'),
+      roundInfo: document.getElementById('roundInfo'),
+      turnInfo: document.getElementById('turnInfo'),
+      remainingInfo: document.getElementById('remainingInfo'),
+      currentPlayerBox: document.getElementById('currentPlayerBox'),
+      levelSelection: document.getElementById('levelSelection'),
+      questionArea: document.getElementById('questionArea'),
+      questionWord: document.getElementById('questionWord'),
+      levelBadge: document.getElementById('levelBadge'),
+      sentenceBtn: document.getElementById('sentenceBtn'),
+      hintBtn: document.getElementById('hintBtn'),
+      sentenceBox: document.getElementById('sentenceBox'),
+      hintBox: document.getElementById('hintBox'),
+      optionsContainer: document.getElementById('optionsContainer'),
+      feedbackBox: document.getElementById('feedbackBox'),
+      nextTurnBtn: document.getElementById('nextTurnBtn'),
+      restartBtn: document.getElementById('restartBtn'),
+      scoreboard: document.getElementById('scoreboard'),
+      rankingList: document.getElementById('rankingList'),
+      playAgainBtn: document.getElementById('playAgainBtn'),
+      scoreChart: document.getElementById('scoreChart')
+    };
+
+    el.buildPlayersBtn.addEventListener('click', buildPlayerInputs);
+    el.startGameBtn.addEventListener('click', startGame);
+    el.nextTurnBtn.addEventListener('click', nextTurn);
+    el.restartBtn.addEventListener('click', resetGame);
+    el.playAgainBtn.addEventListener('click', resetGame);
+    el.sentenceBtn.addEventListener('click', showSentence);
+    el.hintBtn.addEventListener('click', showHint);
+    document.querySelectorAll('.level-btn').forEach(btn => {
+      btn.addEventListener('click', () => chooseLevel(btn.dataset.level));
+    });
+
+    function buildPlayerInputs() {
+      const count = Math.max(1, Math.min(8, parseInt(el.playerCount.value || '2', 10)));
+      el.playersContainer.innerHTML = '';
+
+      for (let i = 0; i < count; i++) {
+        const box = document.createElement('div');
+        box.className = 'player-box';
+        box.innerHTML = `
+          <label>Player ${i + 1} name</label>
+          <input type="text" class="player-name" placeholder="Enter player name" value="Player ${i + 1}" />
+          <div style="margin-top:10px; font-weight:bold;">Choose avatar</div>
+          <div class="avatar-list" data-player-index="${i}">
+            ${avatarChoices.map((a, idx) => `
+              <div class="avatar-option ${idx === i % avatarChoices.length ? 'selected' : ''}" data-avatar-id="${a.id}" data-emoji="${a.emoji}" data-label="${a.label}">
+                <span class="avatar-emoji">${a.emoji}</span>
+                <small>${a.label}</small>
+              </div>
+            `).join('')}
+          </div>
+        `;
+        el.playersContainer.appendChild(box);
+      }
+
+      document.querySelectorAll('.avatar-list').forEach(list => {
+        list.querySelectorAll('.avatar-option').forEach(option => {
+          option.addEventListener('click', () => {
+            list.querySelectorAll('.avatar-option').forEach(o => o.classList.remove('selected'));
+            option.classList.add('selected');
+          });
+        });
+      });
+
+      el.startWrap.classList.remove('hidden');
+    }
+
+    function collectPlayers() {
+      const names = Array.from(document.querySelectorAll('.player-name'));
+      const avatarLists = Array.from(document.querySelectorAll('.avatar-list'));
+      const players = [];
+
+      names.forEach((input, index) => {
+        const selected = avatarLists[index].querySelector('.avatar-option.selected');
+        players.push({
+          id: index + 1,
+          name: input.value.trim() || `Player ${index + 1}`,
+          avatar: selected?.dataset.emoji || '⭐',
+          avatarLabel: selected?.dataset.label || 'Star Pony',
+          score: 0,
+          history: [0]
+        });
+      });
+
+      return players;
+    }
+
+    function startGame() {
+      state.players = collectPlayers();
+      state.rounds = Math.max(1, parseInt(el.roundCount.value || '5', 10));
+      state.currentRound = 1;
+      state.currentTurn = 1;
+      state.totalTurns = state.players.length * state.rounds;
+      state.usedWords.clear();
+
+      const randomStart = Math.floor(Math.random() * state.players.length);
+      state.currentPlayerIndex = randomStart;
+
+      el.setupScreen.classList.add('hidden');
+      el.resultScreen.classList.add('hidden');
+      el.gameScreen.classList.remove('hidden');
+      el.levelSelection.classList.remove('hidden');
+      el.questionArea.classList.add('hidden');
+      updateHeader();
+      renderCurrentPlayer();
+      renderScoreboard();
+      renderChart(true);
+    }
+
+    function updateHeader() {
+      el.roundInfo.textContent = `Round ${state.currentRound} of ${state.rounds}`;
+      el.turnInfo.textContent = `Turn ${state.currentTurn} of ${state.totalTurns}`;
+      el.remainingInfo.textContent = `${state.totalTurns - state.currentTurn + 1} turns remaining`;
+    }
+
+    function renderCurrentPlayer() {
+      const player = state.players[state.currentPlayerIndex];
+      el.currentPlayerBox.innerHTML = `
+        <div class="big-avatar">${player.avatar}</div>
+        <div>
+          <div style="font-size:1.15rem; font-weight:bold;">${player.name}'s turn</div>
+          <div style="color:var(--muted);">Score: ${player.score}</div>
+        </div>
+      `;
+    }
+
+    async function chooseLevel(level) {
+      state.currentLevel = level;
+      el.levelSelection.classList.add('hidden');
+      el.questionArea.classList.remove('hidden');
+      el.feedbackBox.classList.add('hidden');
+      el.nextTurnBtn.classList.add('hidden');
+      el.sentenceBox.classList.add('hidden');
+      el.hintBox.classList.add('hidden');
+      el.sentenceBtn.disabled = false;
+      el.hintBtn.disabled = false;
+      el.optionsContainer.innerHTML = '<div class="message neutral">Generating AI question...</div>';
+
+      const question = await generateQuestion(level);
+      state.currentQuestion = {
+        ...question,
+        level,
+        penalty: 0,
+        sentenceUsed: false,
+        hintUsed: false,
+        answered: false
+      };
+      renderQuestion();
+    }
+
+    function renderQuestion() {
+      const q = state.currentQuestion;
+      el.questionWord.textContent = q.word;
+      el.levelBadge.textContent = `${q.level.toUpperCase()} · ${levelPoints[q.level]} points`;
+      el.optionsContainer.innerHTML = '';
+
+      q.options.forEach(option => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn';
+        btn.textContent = option;
+        btn.addEventListener('click', () => answerQuestion(option, btn));
+        el.optionsContainer.appendChild(btn);
+      });
+    }
+
+    function showSentence() {
+      const q = state.currentQuestion;
+      if (!q || q.sentenceUsed || q.answered) return;
+      q.penalty += assistPenalty[q.level];
+      q.sentenceUsed = true;
+      el.sentenceBox.textContent = `Example: ${q.sentence}`;
+      el.sentenceBox.classList.remove('hidden');
+      el.sentenceBtn.disabled = true;
+    }
+
+    function showHint() {
+      const q = state.currentQuestion;
+      if (!q || q.hintUsed || q.answered) return;
+      q.penalty += assistPenalty[q.level];
+      q.hintUsed = true;
+      el.hintBox.textContent = `Hint: ${q.hint}`;
+      el.hintBox.classList.remove('hidden');
+      el.hintBtn.disabled = true;
+    }
+
+    function answerQuestion(selectedOption, selectedBtn) {
+      const q = state.currentQuestion;
+      if (!q || q.answered) return;
+      q.answered = true;
+
+      const allButtons = Array.from(el.optionsContainer.querySelectorAll('button'));
+      allButtons.forEach(btn => btn.disabled = true);
+
+      const correct = selectedOption === q.correct;
+      const player = state.players[state.currentPlayerIndex];
+      let earned = 0;
+
+      allButtons.forEach(btn => {
+        if (btn.textContent === q.correct) btn.classList.add('correct');
+        if (btn === selectedBtn && btn.textContent !== q.correct) btn.classList.add('wrong');
+      });
+
+      if (correct) {
+        earned = Math.max(0, levelPoints[q.level] - q.penalty);
+        player.score += earned;
+        el.feedbackBox.textContent = `Correct. ${player.name} earned ${earned} point${earned === 1 ? '' : 's'}.`;
+        el.feedbackBox.className = 'message success';
+      } else {
+        el.feedbackBox.textContent = `Wrong. The correct synonym was “${q.correct}”. No points awarded.`;
+        el.feedbackBox.className = 'message error';
+      }
+
+      player.history.push(player.score);
+      el.feedbackBox.classList.remove('hidden');
+      renderScoreboard();
+      renderChart();
+      el.nextTurnBtn.classList.remove('hidden');
+      el.sentenceBtn.disabled = true;
+      el.hintBtn.disabled = true;
+    }
+
+    function nextTurn() {
+      if (state.currentTurn >= state.totalTurns) {
+        showResults();
+        return;
+      }
+
+      state.currentTurn += 1;
+      state.currentPlayerIndex = (state.currentPlayerIndex + 1) % state.players.length;
+      if (state.currentPlayerIndex === 0) state.currentRound += 1;
+
+      state.currentQuestion = null;
+      state.currentLevel = null;
+      updateHeader();
+      renderCurrentPlayer();
+      el.levelSelection.classList.remove('hidden');
+      el.questionArea.classList.add('hidden');
+      el.feedbackBox.classList.add('hidden');
+      el.nextTurnBtn.classList.add('hidden');
+    }
+
+    function renderScoreboard() {
+      el.scoreboard.innerHTML = state.players.map(player => `
+        <div class="score-card">
+          <div style="font-size:1.8rem;">${player.avatar}</div>
+          <div style="font-weight:bold; margin-top:6px;">${player.name}</div>
+          <div style="color:var(--muted);">${player.score} points</div>
+        </div>
+      `).join('');
+    }
+
+    function renderChart(reset = false) {
+      const ctx = el.scoreChart.getContext('2d');
+      const maxHistory = Math.max(...state.players.map(p => p.history.length));
+      const labels = Array.from({ length: maxHistory }, (_, i) => `T${i}`);
+
+      if (reset && state.chart) {
+        state.chart.destroy();
+        state.chart = null;
+      }
+
+      const datasets = state.players.map((player, index) => ({
+        label: `${player.avatar} ${player.name}`,
+        data: player.history,
+        tension: 0.25,
+        fill: false
+      }));
+
+      if (!state.chart) {
+        state.chart = new Chart(ctx, {
+          type: 'line',
+          data: { labels, datasets },
+          options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: { legend: { position: 'bottom' } },
+            scales: { y: { beginAtZero: true } }
+          }
+        });
+      } else {
+        state.chart.data.labels = labels;
+        state.chart.data.datasets = datasets;
+        state.chart.update();
+      }
+    }
+
+    function showResults() {
+      el.gameScreen.classList.add('hidden');
+      el.resultScreen.classList.remove('hidden');
+      const ranked = [...state.players].sort((a, b) => b.score - a.score);
+      const medals = ['🥇', '🥈', '🥉'];
+      el.rankingList.innerHTML = ranked.map((player, index) => `
+        <div class="rank-item">
+          <div>${medals[index] || '🏅'} ${player.avatar} ${player.name}</div>
+          <div>${player.score} pts</div>
+        </div>
+      `).join('');
+    }
+
+    function resetGame() {
+      state.players = [];
+      state.rounds = 5;
+      state.currentRound = 1;
+      state.currentPlayerIndex = 0;
+      state.totalTurns = 0;
+      state.currentTurn = 1;
+      state.currentQuestion = null;
+      state.currentLevel = null;
+      state.usedWords.clear();
+      if (state.chart) {
+        state.chart.destroy();
+        state.chart = null;
+      }
+      el.setupScreen.classList.remove('hidden');
+      el.gameScreen.classList.add('hidden');
+      el.resultScreen.classList.add('hidden');
+    }
+      async function generateQuestion(level) {
+        const password = prompt("Enter game password:");
+      
+        const res = await fetch("https://YOUR-RENDER-URL/generate", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ level, password })
+        });
+      
+        if (!res.ok) {
+          alert("Wrong password or server error");
+          return fallbackGenerate(level);
+        }
+      
+        return await res.json();
+      }
+
+    function fallbackGenerate(level) {
+      const bank = fallbackBank[level];
+      let available = bank.filter(item => !state.usedWords.has(item.word));
+      if (available.length === 0) {
+        state.usedWords.clear();
+        available = [...bank];
+      }
+      const chosen = available[Math.floor(Math.random() * available.length)];
+      state.usedWords.add(chosen.word);
+      const options = shuffle([chosen.correct, ...chosen.wrong]);
+      return {
+        word: chosen.word,
+        correct: chosen.correct,
+        options,
+        hint: chosen.hint,
+        sentence: chosen.sentence
+      };
+    }
+
+    function shuffle(arr) {
+      const copy = [...arr];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    buildPlayerInputs();
+  </script>
+</body>
+</html>
